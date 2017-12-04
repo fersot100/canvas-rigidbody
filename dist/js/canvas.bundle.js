@@ -99,6 +99,7 @@ var mouse = new _vectors2.default(canvas.width / 2, canvas.height / 2);
 var time = void 0;
 
 var colors = ['#2a2a2a', '#6b7783', '#511c16', '#0c3c60', '#ff703f'];
+
 // Event Listeners
 addEventListener('mousemove', function (event) {
     mouse.x = event.clientX;

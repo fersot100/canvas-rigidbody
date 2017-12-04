@@ -2,12 +2,11 @@ import Time from './time';
 import Vector2 from './vectors';
 
 // Initial Setup
-const canvas = document.querySelector('canvas')
-const c = canvas.getContext('2d')
+const canvas = document.querySelector('canvas');
+const c = canvas.getContext('2d');
 
-canvas.width = innerWidth
-canvas.height = innerHeight
-
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
 const mouse = new Vector2(canvas.width / 2, canvas.height / 2);
 
@@ -19,33 +18,34 @@ const colors = [
     '#511c16',
     '#0c3c60',
     '#ff703f'
-]
+];
+
 // Event Listeners
 addEventListener('mousemove', event => {
     mouse.x = event.clientX;
     mouse.y = event.clientY;
-})
+});
 
 addEventListener('resize', () => {
     canvas.width = innerWidth;
     canvas.height = innerHeight;
     start()
-})
+});
 
 // Utility 
 function randomIntFromRange(min, max) {
-    return Math.floor(Math.random() * (max - min + 1) + min)
+    return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
 function randomColor(colors) {
-    return colors[Math.floor(Math.random() * colors.length)]
+    return colors[Math.floor(Math.random() * colors.length)];
 }
 
 function distance(v1, v2) {
     const xDist = v2.x - v1.x;
     const yDist = v2.y - v1.y;
 
-    return Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2))
+    return Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2));
 }
 
 // Basic Physics Object
@@ -91,8 +91,6 @@ class Rigidbody2D{
             this._colliding = true;
             this.vel.y = -this.vel.y * this.frictionCoefficient;
         }
-            
-           
     }
     update() {
         this.checkCollision();
