@@ -73,6 +73,20 @@
 "use strict";
 
 
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _time = __webpack_require__(1);
+
+var _time2 = _interopRequireDefault(_time);
+
+var _vectors = __webpack_require__(2);
+
+var _vectors2 = _interopRequireDefault(_vectors);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
 // Initial Setup
 var canvas = document.querySelector('canvas');
 var c = canvas.getContext('2d');
@@ -80,14 +94,11 @@ var c = canvas.getContext('2d');
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
-// Variables
-var mouse = {
-    x: innerWidth / 2,
-    y: innerHeight / 2
-};
+var mouse = new _vectors2.default(canvas.width / 2, canvas.height / 2);
 
-var colors = ['#2185C5', '#7ECEFD', '#FFF6E5', '#FF7F66'];
+var time = void 0;
 
+var colors = ['#2a2a2a', '#6b7783', '#511c16', '#0c3c60', '#ff703f'];
 // Event Listeners
 addEventListener('mousemove', function (event) {
     mouse.x = event.clientX;
@@ -97,11 +108,10 @@ addEventListener('mousemove', function (event) {
 addEventListener('resize', function () {
     canvas.width = innerWidth;
     canvas.height = innerHeight;
-
-    init();
+    start();
 });
 
-// Utility Functions
+// Utility 
 function randomIntFromRange(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
@@ -110,58 +120,206 @@ function randomColor(colors) {
     return colors[Math.floor(Math.random() * colors.length)];
 }
 
-function distance(x1, y1, x2, y2) {
-    var xDist = x2 - x1;
-    var yDist = y2 - y1;
+function distance(v1, v2) {
+    var xDist = v2.x - v1.x;
+    var yDist = v2.y - v1.y;
 
     return Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2));
 }
 
-// Objects
-function Object(x, y, radius, color) {
-    var _this = this;
+// Basic Physics Object
 
-    this.x = x;
-    this.y = y;
-    this.radius = radius;
-    this.color = color;
+var Rigidbody2D = function () {
+    function Rigidbody2D() {
+        var x = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : canvas.width / 2;
+        var y = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : canvas.height / 2;
+        var radius = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 30;
+        var color = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : randomColor(colors);
 
-    this.update = function () {
-        _this.draw();
-    };
+        _classCallCheck(this, Rigidbody2D);
 
-    this.draw = function () {
-        c.beginPath();
-        c.arc(_this.x, _this.y, _this.radius, 0, Math.PI * 2, false);
-        c.fillStyle = _this.color;
-        c.fill();
-        c.closePath();
-    };
-}
+        this.pos = new _vectors2.default(randomIntFromRange(100, 800), randomIntFromRange(100, 400));
+
+        this.vel = new _vectors2.default(randomIntFromRange(-600, 600), randomIntFromRange(-600, 600));
+
+        this.accel = new _vectors2.default(0, 980);
+
+        this.frictionCoefficient = .96;
+        this.radius = radius;
+        this.color = color;
+        this._colliding = false;
+    }
+
+    _createClass(Rigidbody2D, [{
+        key: 'checkCollision',
+        value: function checkCollision() {
+            //Collision against screen boundaries
+            this._colliding = false;
+            if (this.pos.x < this.radius) {
+                this.pos.x = this.radius;
+                this._colliding = true;
+                this.vel.x = -this.vel.x * this.frictionCoefficient;
+            } else if (this.pos.x > canvas.width - this.radius) {
+                this.pos.x = canvas.width - this.radius;
+                this._colliding = true;
+                this.vel.x = -this.vel.x * this.frictionCoefficient;
+            }
+            if (this.pos.y <= this.radius) {
+                this.y = this.radius;
+                this._colliding = true;
+                this.vel.y = -this.vel.y * this.frictionCoefficient;
+            } else if (this.pos.y >= canvas.height - this.radius) {
+                this.y = canvas.height - this.radius;
+                this._colliding = true;
+                this.vel.y = -this.vel.y * this.frictionCoefficient;
+            }
+        }
+    }, {
+        key: 'update',
+        value: function update() {
+            this.checkCollision();
+            //Update velocity only if the rigidbody isn't colliding with anything
+            if (!this._colliding) this.vel = this.vel.add(this.accel.multiply(time.deltaTime));
+            //Update position
+            this.pos = this.pos.add(this.vel.multiply(time.deltaTime));
+
+            this.draw();
+        }
+    }, {
+        key: 'draw',
+        value: function draw() {
+            c.beginPath();
+            c.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2, false);
+            c.fillStyle = this.color;
+            c.fill();
+            c.closePath();
+        }
+    }]);
+
+    return Rigidbody2D;
+}();
 
 // Implementation
-var objects = void 0;
-function init() {
-    objects = [];
 
-    for (var i = 0; i < 400; i++) {
-        // objects.push();
+
+var balls = void 0;
+function start() {
+    balls = [];
+    for (var i = 0; i < 20; i++) {
+        balls.push(new Rigidbody2D());
     }
 }
 
 // Animation Loop
-function animate() {
-    requestAnimationFrame(animate);
-    c.clearRect(0, 0, canvas.width, canvas.height);
+function update(currentTime) {
+    //Initialize time object and update with current timestamp
+    if (!time) time = new _time2.default(currentTime);
+    time.update(currentTime);
+    requestAnimationFrame(update);
 
-    c.fillText('HTML CANVAS BOILERPLATE', mouse.x, mouse.y);
-    // objects.forEach(object => {
-    //  object.update();
-    // });
+    c.clearRect(0, 0, canvas.width, canvas.height);
+    balls.forEach(function (ball) {
+        ball.update();
+    });
 }
 
-init();
-animate();
+start();
+update(0);
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Time = function () {
+    function Time(start) {
+        _classCallCheck(this, Time);
+
+        this.currentTime = start;
+        this._deltaTime = 0;
+    }
+
+    _createClass(Time, [{
+        key: "update",
+        value: function update(newTime) {
+            this._deltaTime = newTime - this.currentTime;
+            this.currentTime = newTime;
+            //Framerate is the inverse of the time between
+            this.frameRate = 1000 / this._deltaTime;
+        }
+    }, {
+        key: "deltaTime",
+        get: function get() {
+            //Return the delta in seconds
+            return this._deltaTime / 1000;
+        }
+    }]);
+
+    return Time;
+}();
+
+exports.default = Time;
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Vector2 = function () {
+    function Vector2(x, y) {
+        _classCallCheck(this, Vector2);
+
+        this.x = x;
+        this.y = y;
+    }
+
+    _createClass(Vector2, [{
+        key: "add",
+        value: function add(v) {
+            return new Vector2(this.x + v.x, this.y + v.y);
+        }
+    }, {
+        key: "subtract",
+        value: function subtract(v) {
+            return new Vector2(this.x - v.x, this.y - v.y);
+        }
+    }, {
+        key: "normalize",
+        value: function normalize() {
+            var hyp = Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
+            return new Vector2(this.x / hyp, this.y / hyp);
+        }
+    }, {
+        key: "multiply",
+        value: function multiply(scalar) {
+            return new Vector2(this.x * scalar, this.y * scalar);
+        }
+    }]);
+
+    return Vector2;
+}();
+
+exports.default = Vector2;
 
 /***/ })
 /******/ ]);

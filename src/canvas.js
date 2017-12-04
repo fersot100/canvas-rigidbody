@@ -1,3 +1,6 @@
+import Time from './time';
+import Vector2 from './vectors';
+
 // Initial Setup
 const canvas = document.querySelector('canvas')
 const c = canvas.getContext('2d')
@@ -5,28 +8,31 @@ const c = canvas.getContext('2d')
 canvas.width = innerWidth
 canvas.height = innerHeight
 
-// Variables
-const mouse = {
-    x: innerWidth / 2,
-    y: innerHeight / 2
-}
 
-const colors = ['#2185C5', '#7ECEFD', '#FFF6E5', '#FF7F66']
+const mouse = new Vector2(canvas.width / 2, canvas.height / 2);
 
+let time;
+
+const colors = [
+    '#2a2a2a',
+    '#6b7783',
+    '#511c16',
+    '#0c3c60',
+    '#ff703f'
+]
 // Event Listeners
 addEventListener('mousemove', event => {
-    mouse.x = event.clientX
-    mouse.y = event.clientY
+    mouse.x = event.clientX;
+    mouse.y = event.clientY;
 })
 
 addEventListener('resize', () => {
-    canvas.width = innerWidth
-    canvas.height = innerHeight
-
-    init()
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+    start()
 })
 
-// Utility Functions
+// Utility 
 function randomIntFromRange(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min)
 }
@@ -35,27 +41,72 @@ function randomColor(colors) {
     return colors[Math.floor(Math.random() * colors.length)]
 }
 
-function distance(x1, y1, x2, y2) {
-    const xDist = x2 - x1
-    const yDist = y2 - y1
+function distance(v1, v2) {
+    const xDist = v2.x - v1.x;
+    const yDist = v2.y - v1.y;
 
     return Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2))
 }
 
-// Objects
-function Object(x, y, radius, color) {
-    this.x = x
-    this.y = y
-    this.radius = radius
-    this.color = color
+// Basic Physics Object
+class Rigidbody2D{
+    constructor(x = canvas.width / 2, y = canvas.height / 2,
+    radius = 30, color = randomColor(colors)) {
 
-    this.update = () => {
+        this.pos = new Vector2(
+            randomIntFromRange(100, 800),
+            randomIntFromRange(100,400));
+
+        this.vel = new Vector2(
+            randomIntFromRange(-600,600),
+            randomIntFromRange(-600,600));
+
+        this.accel = new Vector2(0,980);
+
+        this.frictionCoefficient = .96;
+        this.radius = radius;
+        this.color = color;
+        this._colliding = false;
+    }
+    checkCollision(){
+        //Collision against screen boundaries
+        this._colliding = false;
+        if(this.pos.x < this.radius){
+            this.pos.x = this.radius;
+            this._colliding = true;
+            this.vel.x = -this.vel.x * this.frictionCoefficient;
+        }
+        else if(this.pos.x > canvas.width - this.radius){
+            this.pos.x = canvas.width - this.radius;
+            this._colliding = true;
+            this.vel.x = -this.vel.x * this.frictionCoefficient;
+        }
+        if(this.pos.y <= this.radius){
+            this.y = this.radius
+            this._colliding = true;
+            this.vel.y = -this.vel.y * this.frictionCoefficient;
+        }
+        else if( this.pos.y >= canvas.height - this.radius){
+            this.y = canvas.height - this.radius
+            this._colliding = true;
+            this.vel.y = -this.vel.y * this.frictionCoefficient;
+        }
+            
+           
+    }
+    update() {
+        this.checkCollision();
+        //Update velocity only if the rigidbody isn't colliding with anything
+        if(!this._colliding)
+        this.vel = this.vel.add(this.accel.multiply(time.deltaTime));
+        //Update position
+        this.pos = this.pos.add(this.vel.multiply(time.deltaTime));
+        
         this.draw()
     }
-
-    this.draw = () => {
+    draw (){
         c.beginPath()
-        c.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false)
+        c.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2, false)
         c.fillStyle = this.color
         c.fill()
         c.closePath()
@@ -63,25 +114,26 @@ function Object(x, y, radius, color) {
 }
 
 // Implementation
-let objects
-function init() {
-    objects = []
-
-    for (let i = 0; i < 400; i++) {
-        // objects.push();
+let balls
+function start() {
+    balls = []
+    for (let i = 0; i < 20; i++) {
+        balls.push(new Rigidbody2D());
     }
 }
 
 // Animation Loop
-function animate() {
-    requestAnimationFrame(animate)
-    c.clearRect(0, 0, canvas.width, canvas.height)
+function update(currentTime) {
+    //Initialize time object and update with current timestamp
+    if(!time) time = new Time(currentTime);
+    time.update(currentTime);
+    requestAnimationFrame(update);
 
-    c.fillText('HTML CANVAS BOILERPLATE', mouse.x, mouse.y)
-    // objects.forEach(object => {
-    //  object.update();
-    // });
+    c.clearRect(0, 0, canvas.width, canvas.height);
+    balls.forEach(ball => {
+     ball.update();
+    });
 }
 
-init()
-animate()
+start();
+update(0);
