@@ -8,9 +8,21 @@ const c = canvas.getContext('2d');
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
-const mouse = new Vector2(canvas.width / 2, canvas.height / 2);
+class Mouse {
+  constructor(){
+    this.pos = new Vector2(canvas.width / 2, canvas.height / 2);
+    this.animationPos = new Vector2(canvas.width / 2, canvas.height / 2);
+  }
+  update(){
+    this.vel = this.pos.subtract(this.animationPos).multiply(time.frameRate);
+    this.animationPos.x = this.pos.x;
+    this.animationPos.y = this.pos.y;
+  }
+}
 
-let time;
+const mouse = new Mouse();
+
+let time, mouseDown = false;
 
 const colors = [
     '#2a2a2a',
@@ -22,8 +34,8 @@ const colors = [
 
 // Event Listeners
 addEventListener('mousemove', event => {
-    mouse.x = event.clientX;
-    mouse.y = event.clientY;
+    mouse.pos.x = event.clientX;
+    mouse.pos.y = event.clientY;
 });
 
 addEventListener('resize', () => {
@@ -31,6 +43,17 @@ addEventListener('resize', () => {
     canvas.height = innerHeight;
     start()
 });
+canvas.addEventListener('mousedown', (e) => {
+  if(e.button === 0){
+    mouseDown = true;
+  }
+});
+canvas.addEventListener('mouseup', e => {
+  if(e.button === 0){
+    mouseDown = false;
+  }
+})
+
 
 // Utility 
 function randomIntFromRange(min, max) {
@@ -65,40 +88,66 @@ class Rigidbody2D{
 
         this.frictionCoefficient = .96;
         this.radius = radius;
+        this.initialRadius = radius;
+        this.maxRadius = 60;
+        this.grabbed = false;
+        this.grabbedOffset = new Vector2(0,0);
+        this.growSpeed = 20;
         this.color = color;
         this._colliding = false;
     }
     checkCollision(){
         //Collision against screen boundaries
         this._colliding = false;
-        if(this.pos.x < this.radius){
-            this.pos.x = this.radius;
-            this._colliding = true;
+        if(this.pos.x <= this.radius){
             this.vel.x = -this.vel.x * this.frictionCoefficient;
         }
-        else if(this.pos.x > canvas.width - this.radius){
-            this.pos.x = canvas.width - this.radius;
-            this._colliding = true;
+        else if(this.pos.x >= canvas.width - this.radius){
             this.vel.x = -this.vel.x * this.frictionCoefficient;
         }
         if(this.pos.y <= this.radius){
-            this.y = this.radius
-            this._colliding = true;
+            //this._colliding = true;
             this.vel.y = -this.vel.y * this.frictionCoefficient;
         }
-        else if( this.pos.y >= canvas.height - this.radius){
-            this.y = canvas.height - this.radius
-            this._colliding = true;
+        else if(this.pos.y >= canvas.height - this.radius){
             this.vel.y = -this.vel.y * this.frictionCoefficient;
+            this.pos.y -= 5;
+            this.accel.x = 0
+            this.accel.y = 0;
+        }else {
+          this.accel.x = 0
+          this.accel.y = 980;
         }
+    }
+    checkMouse() {
+      if(distance(this.pos, mouse.pos) <= this.radius && mouseDown){
+        if(this.radius < this.maxRadius){
+          this.radius += this.maxRadius / this.growSpeed;
+        }
+        this.grabbed = true;
+      }else if(this.radius > this.initialRadius){
+        this.radius -= this.initialRadius / this.growSpeed;
+      }
     }
     update() {
         this.checkCollision();
-        //Update velocity only if the rigidbody isn't colliding with anything
-        if(!this._colliding)
-        this.vel = this.vel.add(this.accel.multiply(time.deltaTime));
-        //Update position
-        this.pos = this.pos.add(this.vel.multiply(time.deltaTime));
+        this.checkMouse();
+
+        if(!this.grabbed){
+          this.grabbedOffset = 'OFF';
+          //Update velocity only if the rigidbody isn't colliding with anything
+          if(!this._colliding)
+          this.vel = this.vel.add(this.accel.multiply(time.deltaTime));
+          //Update position
+          this.pos = this.pos.add(this.vel.multiply(time.deltaTime));
+        } else {
+          if(this.grabbedOffset === 'OFF'){
+            this.grabbedOffset = this.pos.subtract(mouse.pos);
+          }
+          this.grabbed = false;
+          this.pos = mouse.pos.add(this.grabbedOffset);
+          this.vel = mouse.vel;
+        }
         
         this.draw()
     }
@@ -125,8 +174,10 @@ function update(currentTime) {
     //Initialize time object and update with current timestamp
     if(!time) time = new Time(currentTime);
     time.update(currentTime);
+    mouse.update();
     requestAnimationFrame(update);
 
+    //Clear and draw
     c.clearRect(0, 0, canvas.width, canvas.height);
     balls.forEach(ball => {
      ball.update();
