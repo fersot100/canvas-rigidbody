@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ 	return __webpack_require__(__webpack_require__.s = 4);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -74,41 +74,53 @@
 
 
 Object.defineProperty(exports, "__esModule", {
-    value: true
+  value: true
 });
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var Time = function () {
-    function Time(start) {
-        _classCallCheck(this, Time);
+function distance(v1, v2) {
+  var xDist = v2.x - v1.x;
+  var yDist = v2.y - v1.y;
 
-        this.currentTime = start;
-        this._deltaTime = 0;
+  return Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2));
+}
+
+var Collider = function () {
+  function Collider() {
+    _classCallCheck(this, Collider);
+  }
+
+  _createClass(Collider, null, [{
+    key: "addCollider",
+    value: function addCollider(newCollider) {
+      Collider.colliderAmount++;
+      Collider.colliders.push(newCollider);
+      Collider.updateCollider(Collider.colliderAmount);
+      return Collider.colliderAmount;
     }
-
-    _createClass(Time, [{
-        key: "update",
-        value: function update(newTime) {
-            this._deltaTime = newTime - this.currentTime;
-            this.currentTime = newTime;
-            //Framerate is the inverse of the time between
-            this.frameRate = 1000 / this._deltaTime;
+  }, {
+    key: "updateCollider",
+    value: function updateCollider(colliderIndex, pos, vel) {
+      Collider.colliders.forEach(function (collider, i) {
+        if (i !== colliderIndex) {
+          if (distance(collider.pos, Collider.colliders[colliderIndex].pos) <= collider.radius + Collider.colliders[colliderIndex].radius) {
+            var angleDeg = Math.atan2(collider.pos.y - Collider.colliders[colliderIndex].pos.y, collider.pos.x - Collider.colliders[colliderIndex].pos.x) * 180 / Math.PI;
+            console.log(angleDeg);
+          }
         }
-    }, {
-        key: "deltaTime",
-        get: function get() {
-            //Return the delta in seconds
-            return this._deltaTime / 1000;
-        }
-    }]);
+      });
+    }
+  }]);
 
-    return Time;
+  return Collider;
 }();
 
-exports.default = Time;
+Collider.colliders = [];
+Collider.colliderAmount = -1;
+exports.default = Collider;
 
 /***/ }),
 /* 1 */
@@ -168,15 +180,116 @@ exports.default = Vector2;
 "use strict";
 
 
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _time = __webpack_require__(0);
+var _vectors = __webpack_require__(1);
+
+var _vectors2 = _interopRequireDefault(_vectors);
+
+var _Collider = __webpack_require__(0);
+
+var _Collider2 = _interopRequireDefault(_Collider);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var CircleCollider = function () {
+  function CircleCollider() {
+    var radius = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 30;
+
+    _classCallCheck(this, CircleCollider);
+
+    this.radius = radius;
+    this.pos = new _vectors2.default(0, 0);
+    this.vel = new _vectors2.default(0, 0);
+    this.colliderIndex = _Collider2.default.addCollider(this);
+  }
+
+  _createClass(CircleCollider, [{
+    key: 'calculate',
+    value: function calculate() {
+      _Collider2.default.updateCollider(this.colliderIndex, this.pos, this.vel);
+    }
+  }]);
+
+  return CircleCollider;
+}();
+
+exports.default = CircleCollider;
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Time = function () {
+    function Time(start) {
+        _classCallCheck(this, Time);
+
+        this.currentTime = start;
+        this._deltaTime = 0;
+    }
+
+    _createClass(Time, [{
+        key: "update",
+        value: function update(newTime) {
+            this._deltaTime = newTime - this.currentTime;
+            this.currentTime = newTime;
+            //Framerate is the inverse of the time between
+            this.frameRate = 1000 / this._deltaTime;
+        }
+    }, {
+        key: "deltaTime",
+        get: function get() {
+            //Return the delta in seconds
+            return this._deltaTime / 1000;
+        }
+    }]);
+
+    return Time;
+}();
+
+exports.default = Time;
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _time = __webpack_require__(3);
 
 var _time2 = _interopRequireDefault(_time);
 
 var _vectors = __webpack_require__(1);
 
 var _vectors2 = _interopRequireDefault(_vectors);
+
+var _circleCollider = __webpack_require__(2);
+
+var _circleCollider2 = _interopRequireDefault(_circleCollider);
+
+var _Collider = __webpack_require__(0);
+
+var _Collider2 = _interopRequireDefault(_Collider);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -280,13 +393,17 @@ var Rigidbody2D = function () {
         this.growSpeed = 20;
         this.color = color;
         this._colliding = false;
+        this.collider = new _circleCollider2.default(radius);
     }
 
     _createClass(Rigidbody2D, [{
         key: 'checkCollision',
         value: function checkCollision() {
             //Collision against screen boundaries
-            this._colliding = false;
+            //this._colliding = false;
+            this.collider.pos = this.pos;
+            this.collider.vel = this.vel;
+            this.collider.calculate();
             if (this.pos.x <= this.radius) {
                 this.vel.x = -this.vel.x * this.frictionCoefficient;
             } else if (this.pos.x >= canvas.width - this.radius) {

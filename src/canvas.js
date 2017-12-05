@@ -1,5 +1,7 @@
 import Time from './time';
 import Vector2 from './vectors';
+import CircleCollider from './circleCollider';
+import collider from './Collider';
 
 // Initial Setup
 const canvas = document.querySelector('canvas');
@@ -95,10 +97,14 @@ class Rigidbody2D{
         this.growSpeed = 20;
         this.color = color;
         this._colliding = false;
+        this.collider = new CircleCollider(radius);
     }
     checkCollision(){
         //Collision against screen boundaries
-        this._colliding = false;
+        //this._colliding = false;
+        this.collider.pos = this.pos;
+        this.collider.vel = this.vel;
+        this.collider.calculate();
         if(this.pos.x <= this.radius){
             this.vel.x = -this.vel.x * this.frictionCoefficient;
         }
